@@ -7,4 +7,4 @@ python-jose[cryptography]>=3.3
 pwdlib[argon2]>=0.2
 email-validator>=2.2
 alembic>=1.13
-
+python-multipart>=0.0.9

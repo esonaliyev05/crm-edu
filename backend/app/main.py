@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from datetime import date, datetime, timedelta, time
 from decimal import Decimal
 from enum import Enum
@@ -12,9 +10,12 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from pwdlib import PasswordHash
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from dotenv import load_dotenv
 from sqlalchemy import Boolean, Date, DateTime, Enum as SAEnum, ForeignKey, Integer, Numeric, String, Text, Time, UniqueConstraint, create_engine, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, relationship, sessionmaker
+
+load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./edu_crm.db")
 SECRET_KEY = os.getenv("SECRET_KEY", "development-only-change-me")
@@ -243,7 +244,14 @@ class PaymentIn(BaseModel): student_id: int; group_id: int | None = None; amount
 class PaymentOut(ORMModel): id: int; student_id: int; group_id: int | None; amount: Decimal; payment_date: date; method: PaymentMethod; period: str; discount: Decimal
 class ExpenseIn(BaseModel): name: str; category: str; amount: Decimal = Field(gt=0); expense_date: date = Field(default_factory=date.today); note: str | None = None
 class ExpenseOut(ORMModel): id: int; name: str; category: str; amount: Decimal; expense_date: date; note: str | None
-class Page(BaseModel, Generic[TypeVar("T")]): items: list[Any]; total: int; page: int; page_size: int
+T = TypeVar("T")
+
+class Page(BaseModel, Generic[T]):
+    """Pagination envelope used by all list endpoints."""
+    items: list[T]
+    total: int
+    page: int
+    page_size: int
 
 
 def entity_or_404(db: Session, cls, entity_id: int):
@@ -259,6 +267,10 @@ def save(db: Session, obj):
 
 app = FastAPI(title="Edu CRM API", version="1.0.0", description="Ta’lim markazini boshqarish REST API")
 app.add_middleware(CORSMiddleware, allow_origins=os.getenv("CORS_ORIGINS", "http://localhost:5173").split(","), allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+
+@app.get("/", tags=["Health"], summary="Backend holatini tekshirish")
+def root():
+    return {"message": "Edu CRM Backend ishlayapti", "docs": "/docs"}
 
 @app.on_event("startup")
 def startup():
